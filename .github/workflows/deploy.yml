@@ -3,32 +3,26 @@ name: Deploy to cPanel
 
 on:
   push:
-    branches:
-      - main    # یا شاخه‌ی دلخواه شما
+    branches: [ main ]
 
 jobs:
   deploy:
-    name: Deploy via SSH
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Setup SSH key
         run: |
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
-          # اگر کلیدتان Base64 است، از خط base64 -d استفاده کنید:
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' | base64 -d > ~/.ssh/id_rsa
-          # اگر کلیدتان متن خام OpenSSH است، به‌جای خط بالا از این استفاده کنید:
-          # echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
+          # چون SSH_PRIVATE_KEY خام است، نیازی به base64 نیست:
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" | tr -d '\r' > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Deploy files
         run: |
-          echo "Deploying to ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.TARGET_PATH }}..."
           if ssh -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "command -v rsync" &>/dev/null; then
             rsync -avz --delete -e "ssh -p ${{ secrets.SSH_PORT }}" ./ ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.TARGET_PATH }}
           else
